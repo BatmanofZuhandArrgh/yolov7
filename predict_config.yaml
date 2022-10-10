@@ -1,0 +1,39 @@
+#str: path to weight 
+weights: yolov7.pt
+#str: Source path to images/videos
+source: inference/images/image1.jpg
+#int: Image is resize to a square img_size*img_size before being put thru model
+img_size: 640 
+#float [0, 1]: Confidence threshold to consider a positive detection
+conf_thres: 0.25
+#float [0,1]: iou threshold for prediction removal
+iou_thres: 0.45
+#str: cpu or 0,1,2,3,4... (gpu index) 
+device: cpu
+#boolean: whether to display results
+view_img: False
+#boolean: whether to save predicted bbox into the txt
+save_txt: True
+#boolean: whether to save confidence score 
+save_conf: True
+#boolean: whether to save images or videos with bbox
+no_save: True
+#list: list of class to filter by
+classes: 
+#boolean: class agnostic nms 
+agnostic_nms: False
+#boolean: augmented inference
+augment: False
+#boolean: whether to update weights
+update: False
+#str: project name path to save results in
+project: runs/detect
+#str: folder name to save
+name: exp
+#boolean: if output folder exist, does not increment (create more folder name)
+exist_ok: False
+#boolean: don't trace model
+no_trace: True
+#whether to use 2nd stage classifier
+classify: False #By default there's no 2nd stage
+  
