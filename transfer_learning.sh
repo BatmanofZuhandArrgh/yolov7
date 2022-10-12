@@ -1,0 +1,1 @@
+python train.py --workers 0 --device 0 --batch-size 4 --data data/trivial_custom_st.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --weights 'yolov7_training.pt' --name trivial_unfrozen-cubesat-200e --hyp data/hyp.scratch.custom.yaml --epochs 200 --cache-images #--freeze
