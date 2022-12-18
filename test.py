@@ -19,6 +19,7 @@ from utils.torch_utils import select_device, time_synchronized, TracedModel
 
 
 def test(data,
+         folder_name,
          weights=None,
          batch_size=32,
          imgsz=640,
@@ -40,7 +41,9 @@ def test(data,
          half_precision=True,
          trace=False,
          is_coco=False,
-         v5_metric=False):
+         v5_metric=False,
+         cubesat_testset_path = ''
+         ):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -51,7 +54,7 @@ def test(data,
         device = select_device(opt.device, batch_size=batch_size)
 
         # Directories
-        save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
+        save_dir = Path(increment_path(Path(opt.project) / folder_name, exist_ok=opt.exist_ok))  # increment run
         (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
         # Load model
@@ -86,8 +89,14 @@ def test(data,
     if not training:
         if device.type != 'cpu':
             model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
-        task = opt.task if opt.task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
-        dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
+        task = opt.task if opt.task in ('train', 'val', 'test', 'cubesat_test') else 'val'  # path to train/val/test images
+        
+        if task == 'cubesat_test':
+            task = 'test' #Reassign task
+            dataloader = create_dataloader(cubesat_testset_path, imgsz, batch_size, gs, opt, pad=0.5, rect=True,
+                                        prefix=colorstr(f'{task}: '))[0]
+        else:
+            dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
                                        prefix=colorstr(f'{task}: '))[0]
 
     if v5_metric:
@@ -295,7 +304,7 @@ if __name__ == '__main__':
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.65, help='IOU threshold for NMS')
-    parser.add_argument('--task', default='val', help='train, val, test, speed or study')
+    parser.add_argument('--task', default='val', help='train, val, test, cubesat_test, speed or study')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--single-cls', action='store_true', help='treat as single-class dataset')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
@@ -309,6 +318,9 @@ if __name__ == '__main__':
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
     parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
+    parser.add_argument('--cubesat_output_folders', nargs='+', help='name of output paths to evaluation of cubesats test sets')
+    parser.add_argument('--cubesat_testsets', nargs='+', help='name of input paths to evaluation of cubesats test sets')
+
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith('coco.yaml')
     opt.data = check_file(opt.data)  # check file
@@ -317,6 +329,7 @@ if __name__ == '__main__':
 
     if opt.task in ('train', 'val', 'test'):  # run normally
         test(opt.data,
+             opt.name,
              opt.weights,
              opt.batch_size,
              opt.img_size,
@@ -333,9 +346,30 @@ if __name__ == '__main__':
              v5_metric=opt.v5_metric
              )
 
+    elif opt.task == 'cubesat_test':
+        for index, cubesat_testset_path in enumerate(opt.cubesat_testsets):
+            test(opt.data,
+                opt.cubesat_output_folders[index],
+                opt.weights,
+                opt.batch_size,
+                opt.img_size,
+                opt.conf_thres,
+                opt.iou_thres,
+                opt.save_json,
+                opt.single_cls,
+                opt.augment,
+                opt.verbose,
+                save_txt=opt.save_txt | opt.save_hybrid,
+                save_hybrid=opt.save_hybrid,
+                save_conf=opt.save_conf,
+                trace=not opt.no_trace,
+                v5_metric=opt.v5_metric,
+                cubesat_testset_path=cubesat_testset_path,
+                )
+
     elif opt.task == 'speed':  # speed benchmarks
         for w in opt.weights:
-            test(opt.data, w, opt.batch_size, opt.img_size, 0.25, 0.45, save_json=False, plots=False, v5_metric=opt.v5_metric)
+            test(opt.data, opt.name, w, opt.batch_size, opt.img_size, 0.25, 0.45, save_json=False, plots=False, v5_metric=opt.v5_metric)
 
     elif opt.task == 'study':  # run over a range of settings and save/plot
         # python test.py --task study --data coco.yaml --iou 0.65 --weights yolov7.pt
@@ -345,7 +379,7 @@ if __name__ == '__main__':
             y = []  # y axis
             for i in x:  # img-size
                 print(f'\nRunning {f} point {i}...')
-                r, _, t = test(opt.data, w, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json,
+                r, _, t = test(opt.data, opt.name, w, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json,
                                plots=False, v5_metric=opt.v5_metric)
                 y.append(r + t)  # results and times
             np.savetxt(f, y, fmt='%10.4g')  # save
