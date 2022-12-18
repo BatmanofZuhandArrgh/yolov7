@@ -1,1 +1,2 @@
-python detect.py --weights yolov7.pt --conf 0.25 --img-size 640 --source inference/images/image1.jpg --device cpu --save-txt --save-conf
+python detect.py --weights runs/train/only_cubes-200e/weights/best.pt --conf 0.1 --img-size 640 --source /home/iasrl/Documents/real_dataset/full_real_testset/agency_testset/images \
+ --device 0 --save-txt --save-conf --agnostic-nms
