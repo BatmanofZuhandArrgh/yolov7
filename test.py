@@ -5,6 +5,7 @@ from pathlib import Path
 from threading import Thread
 
 import numpy as np
+import pandas as pd
 import torch
 import yaml
 from tqdm import tqdm
@@ -107,6 +108,8 @@ def test(data,
     names = {k: v for k, v in enumerate(model.names if hasattr(model, 'names') else model.module.names)}
     coco91class = coco80_to_coco91_class()
     s = ('%20s' + '%12s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
+    eval_df = pd.DataFrame(columns=['Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95'])
+
     p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class, wandb_images = [], [], [], [], []
@@ -241,10 +244,16 @@ def test(data,
     pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
     print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
 
+    eval_df.loc[len(eval_df.index)] = ['all', seen, nt.sum(), mp, mr, map50, map]
+
     # Print results per class
     if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
         for i, c in enumerate(ap_class):
             print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
+            eval_df.loc[len(eval_df.index)] = [names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]]
+    
+    #Save eval_df
+    eval_df.to_csv(os.path.join(save_dir, 'mAP_evaluation.csv'), sep='\t', index = False)
 
     # Print speeds
     t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (imgsz, imgsz, batch_size)  # tuple
@@ -318,8 +327,8 @@ if __name__ == '__main__':
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
     parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
-    parser.add_argument('--cubesat_output_folders', nargs='+', help='name of output paths to evaluation of cubesats test sets')
-    parser.add_argument('--cubesat_testsets', nargs='+', help='name of input paths to evaluation of cubesats test sets')
+    parser.add_argument('--cubesat_output_folders', action='append', help='name of output paths to evaluation of cubesats test sets')
+    parser.add_argument('--cubesat_testsets', action='append', help='name of input paths to evaluation of cubesats test sets')
 
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith('coco.yaml')
