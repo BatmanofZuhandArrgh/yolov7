@@ -47,6 +47,8 @@ def test(data,
          ):
     # Initialize/load model and set device
     training = model is not None
+
+    print('weights','---------------------------------',weights)
     if training:  # called by train.py
         device = next(model.parameters()).device  # get model device
 
@@ -326,7 +328,7 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
-    parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
+    parser.add_argument('--v5_metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
     parser.add_argument('--cubesat_output_folders', action='append', help='name of output paths to evaluation of cubesats test sets')
     parser.add_argument('--cubesat_testsets', action='append', help='name of input paths to evaluation of cubesats test sets')
 
