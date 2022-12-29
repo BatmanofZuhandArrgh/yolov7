@@ -1,6 +1,8 @@
-python train.py --workers 4 --device 0 --batch-size 4 --data data/baseline_synth_custom_st.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --name baseline_synth-100e+real --hyp data/hyp.scratch.custom.yaml --epochs 100 --weights 'yolov7_training.pt' --cache-images #--freeze
 
-python train.py --workers 4 --device 0 --batch-size 4 --data data/only_real_custom_st.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --name only-real-250e --hyp data/hyp.scratch.custom.yaml --epochs 250 --weights 'yolov7_training.pt' --cache-images #--freeze
+
+# python train.py --workers 4 --device 0 --batch-size 4 --data data/baseline_synth_custom_st.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --name baseline_synth-100e+real --hyp data/hyp.scratch.custom.yaml --epochs 100 --weights 'yolov7_training.pt' --cache-images #--freeze
+
+# python train.py --workers 4 --device 0 --batch-size 4 --data data/only_real_custom_st.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --name only-real-250e --hyp data/hyp.scratch.custom.yaml --epochs 2 --weights 'yolov7_training.pt' --cache-images #--freeze
 
 # python train.py --workers 4 --device 0 --batch-size 4 --data data/far_custom_st.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --name far-250e --hyp data/hyp.scratch.custom.yaml --epochs 250 --weights 'yolov7_training.pt' --cache-images #--freeze
 # python train.py --workers 4 --device 0 --batch-size 4 --data data/near_custom_st.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --name near-250e --hyp data/hyp.scratch.custom.yaml --epochs 250 --weights 'yolov7_training.pt' --cache-images #--freeze

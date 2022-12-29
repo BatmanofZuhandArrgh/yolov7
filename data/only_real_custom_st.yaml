@@ -8,8 +8,8 @@ download:  #bash ./scripts/get_coco.sh
 train: /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_trainset/images  # 118287 images
 val: /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_trainset/images  # 5000 images
 test: /home/iasrl/Documents/real_dataset/full_real_testset/agency_testset/images  
-#test
 # number of classes
+
 nc: 8
 
 # class names
