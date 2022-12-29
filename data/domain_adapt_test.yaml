@@ -8,7 +8,7 @@ download:  #bash ./scripts/get_coco.sh
 train: /home/anhnguyen/Documents/real_testsets/full_real_testset/space_agencies/images  # 118287 images
 val: /home/anhnguyen/Documents/real_testsets/full_real_testset/val/images  # 5000 images
 test: /home/anhnguyen/Documents/real_testsets/full_real_testset/space_agencies/images 
-domain_adapt: /home/anhnguyen/Documents/real_testsets/full_real_testset/space_agencies/images
+domain_adapt: /home/anhnguyen/Documents/CubeSat/sequences/unlablled_imgs_wocubesats/images
 # number of classes
 
 nc: 8

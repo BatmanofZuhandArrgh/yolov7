@@ -584,13 +584,16 @@ class Model(nn.Module):
     def forward(self, x, augment=False, profile=False):
 
         if augment:
+            #Will not output DA feature maps
             img_size = x.shape[-2:]  # height, width
             s = [1, 0.83, 0.67]  # scales
             f = [None, 3, None]  # flips (2-ud, 3-lr)
             y = []  # outputs
             for si, fi in zip(s, f):
                 xi = scale_img(x.flip(fi) if fi else x, si, gs=int(self.stride.max()))
-                yi = self.forward_once(xi)[0]  # forward
+                forward_output, _ = self.forward_once(xi)
+                yi = forward_output[0]  # forward ADDED DA
+                
                 # cv2.imwrite(f'img_{si}.jpg', 255 * xi[0].cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])  # save
                 yi[..., :4] /= si  # de-scale
                 if fi == 2:
@@ -598,8 +601,10 @@ class Model(nn.Module):
                 elif fi == 3:
                     yi[..., 0] = img_size[1] - yi[..., 0]  # de-flip lr
                 y.append(yi)
+
             return torch.cat(y, 1), None  # augmented inference, train
         else:
+            #Will output DA feature maps
             return self.forward_once(x, profile)  # single-scale inference, train
 
     def forward_once(self, x, profile=False):
@@ -634,7 +639,6 @@ class Model(nn.Module):
             #They should be features that are pulled from backbone to concat with head
             if m.i in [37, 24, 51, 63]:
                 da_feature_maps.append(x)
-                # print(m.i, m.type,x.shape)
             
             y.append(x if m.i in self.save else None)  # save output
 
@@ -844,10 +848,10 @@ if __name__ == '__main__':
     model.train()
     
     if opt.profile:
-        img = torch.rand(1, 3, 640, 640).to(device)
+        img = torch.rand(2, 3, 640, 640).to(device)
         y = model(img, profile=True)
     else:
-        img = torch.rand(1, 3, 640, 640).to(device)
+        img = torch.rand(2, 3, 640, 640).to(device)
         y = model(img, profile=False)
 
     # for el in y:

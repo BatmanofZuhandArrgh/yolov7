@@ -400,7 +400,9 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         if exists:
             d = f"Scanning '{cache_path}' images and labels... {nf} found, {nm} missing, {ne} empty, {nc} corrupted"
             tqdm(None, desc=prefix + d, total=n, initial=n)  # display cache results
-        assert nf > 0 or not augment, f'{prefix}No labels in {cache_path}. Can not train without labels. See {help_url}'
+        # assert nf > 0 or not augment, f'{prefix}No labels in {cache_path}. Can not train without labels. See {help_url}' #FIXED for DA
+        if nf > 0:
+            print('Detected unsupervised domain adapt dataset without labels')
 
         # Read cache
         cache.pop('hash')  # remove hash

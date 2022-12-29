@@ -235,7 +235,7 @@ if __name__ == '__main__':
         det_scores = results.as_numpy(OUTPUT_NAMES[2])
         det_classes = results.as_numpy(OUTPUT_NAMES[3])
         detected_objects = postprocess(num_dets, det_boxes, det_scores, det_classes, input_image.shape[1], input_image.shape[0], [FLAGS.width, FLAGS.height])
-        print(f"Detected objects: {len(detected_objects)}")
+        print(f"--> Detected objects: {len(detected_objects)}")
 
         for box in detected_objects:
             print(f"{COCOLabels(box.classID).name}: {box.confidence}")

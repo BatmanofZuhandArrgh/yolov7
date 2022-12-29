@@ -48,7 +48,6 @@ def test(data,
     # Initialize/load model and set device
     training = model is not None
 
-    print('weights','---------------------------------',weights)
     if training:  # called by train.py
         device = next(model.parameters()).device  # get model device
 
@@ -125,9 +124,9 @@ def test(data,
         with torch.no_grad():
             # Run model
             t = time_synchronized()
-            out, train_out = model(img, augment=augment)  # inference and training outputs
+            model_output, da_feature_maps =  model(img, augment=augment)  # inference and training outputs #ADDED DA
+            out, train_out = model_output
             t0 += time_synchronized() - t
-
             # Compute loss
             if compute_loss:
                 loss += compute_loss([x.float() for x in train_out], targets)[1][:3]  # box, obj, cls

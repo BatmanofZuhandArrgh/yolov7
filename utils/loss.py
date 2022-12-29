@@ -147,6 +147,41 @@ class FocalLoss(nn.Module):
         else:  # 'none'
             return loss
 
+class CoralLoss(nn.Module):
+    def __init__(self, reduce = 'mean'):
+        #Inspired by https://github.com/SSARCandy/DeepCORAL/blob/master/models.py
+        super(CoralLoss, self).__init__()
+        if reduce == 'sum':
+            self.reduce_2dim = torch.sum
+        elif reduce == 'mean':
+            self.reduce_2dim = torch.mean
+
+    def forward(self, source, target):
+        channel_size = source.shape[1]
+        #shape = [batch, channel, side, side] (assuming it's square)
+    
+        #Source
+        #  Mean-center accross the batch
+        xm = torch.mean(source, dim=0, keepdim=True) - source 
+        #Reduce dimension for each channel to only have 1 mean value
+        #In the original implementation, the size of feature is only [batch, channel]
+        #In testing this
+        # print(xm, xm.shape)
+        xm_2dim = self.reduce_2dim(xm, dim = (2,3)) 
+        # print(xm_2dim, xm_2dim.shape)
+        xc = torch.matmul(torch.transpose(xm_2dim, 0, 1), xm_2dim)
+        
+        #  Target
+        xmt = torch.mean(target, dim=0, keepdim=True) - source
+        xmt_2dim = self.reduce_2dim(xmt, dim = (2, 3))
+        xct = torch.matmul(torch.transpose(xmt_2dim, 0, 1), xmt_2dim)
+
+        # frobenius norm between source and target
+        loss = torch.mean(torch.mul((xc - xct), (xc - xct)))
+        # loss = loss/(4*channel_size*channel_size)  #Do not scale, due to the loss vanished over matrix multiplication and averaging for too big matrix
+
+        return loss
+
 
 class QFocalLoss(nn.Module):
     # Wraps Quality focal loss around existing loss_fcn(), i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=1.5)
@@ -420,6 +455,7 @@ class APLoss(torch.autograd.Function):
 
 
 class ComputeLoss:
+    # Does not support DA yet
     # Compute losses
     def __init__(self, model, autobalance=False):
         super(ComputeLoss, self).__init__()
@@ -564,6 +600,8 @@ class ComputeLossOTA:
         BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
 
+        self.DAfeatloss = CoralLoss()
+
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets
 
@@ -579,9 +617,11 @@ class ComputeLossOTA:
         for k in 'na', 'nc', 'nl', 'anchors', 'stride':
             setattr(self, k, getattr(det, k))
 
-    def __call__(self, p, targets, imgs):  # predictions, targets, model   
+    def __call__(self, p, targets, imgs, source_da_feature_maps, target_da_feature_maps):  # predictions, targets, model   
         device = targets.device
         lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
+        lda = torch.zeros(1, device=device) #ADDED DA
+
         bs, as_, gjs, gis, targets, anchors = self.build_targets(p, targets, imgs)
         pre_gen_gains = [torch.tensor(pp.shape, device=device)[[3, 2, 3, 2]] for pp in p] 
     
@@ -627,13 +667,18 @@ class ComputeLossOTA:
 
         if self.autobalance:
             self.balance = [x / self.balance[self.ssi] for x in self.balance]
+        for fm_idx in range(len(source_da_feature_maps)): 
+            lda += self.DAfeatloss(source = source_da_feature_maps[fm_idx], target = target_da_feature_maps[fm_idx])
+        
+        lda /= len(source_da_feature_maps)
+        lda  *= self.hyp['da']
         lbox *= self.hyp['box']
         lobj *= self.hyp['obj']
         lcls *= self.hyp['cls']
-        bs = tobj.shape[0]  # batch size
+        bs = tobj.shape[0]  # scale by batch size
 
-        loss = lbox + lobj + lcls
-        return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
+        loss = lbox + lobj + lcls + lda
+        return loss * bs, torch.cat((lbox, lobj, lcls, lda, loss)).detach()
 
     def build_targets(self, p, targets, imgs):
         
