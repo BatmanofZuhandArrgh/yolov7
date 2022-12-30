@@ -289,6 +289,7 @@ def train(hyp, opt, device, tb_writer=None):
     hyp['box'] *= 3. / nl  # scale to layers
     hyp['cls'] *= nc / 80. * 3. / nl  # scale to classes and layers
     hyp['obj'] *= (imgsz / 640) ** 2 * 3. / nl  # scale to image size and layers
+    hyp['da']  *= 3. /nl
     hyp['label_smoothing'] = opt.label_smoothing
     model.nc = nc  # attach number of classes to model
     model.hyp = hyp  # attach hyperparameters to model
@@ -341,7 +342,10 @@ def train(hyp, opt, device, tb_writer=None):
         if rank in [-1, 0]:
             pbar = tqdm(pbar, total=nb)  # progress bar
         optimizer.zero_grad()
-        for (i, (imgs, targets, paths, _)), (da_i, (target_domain_imgs, _, target_domain_paths, _)) in zip(pbar, da_pbar):  # batch -------------------------------------------------------------
+        for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
+            target_domain_imgs, _, target_domain_paths, _ = next(iter(da_dataloader))
+            # print(target_domain_imgs.shape, target_domain_paths)
+            
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device, non_blocking=True).float() / 255.0  # uint8 to float32, 0-255 to 0.0-1.0
             target_domain_imgs = target_domain_imgs.to(device, non_blocking=True).float()/255.0

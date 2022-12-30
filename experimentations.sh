@@ -152,20 +152,21 @@
 
 
 #dataset size: num images
-# #Train baseline-synth + real in 100e
-# python train.py --workers 4 --device 0 --batch-size 4 --data data/official5000_synth+real_custom_st.yaml \
-#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name official5000_synth-100e+real --hyp data/hyp.scratch.custom.yaml --epochs 110 --weights 'yolov7_training.pt' --cache-images #--freeze
+#Train baseline-synth + real in 100e
+python train.py --workers 4 --device 0 --batch-size 4 --data data/official5000_synth+real_custom_st.yaml \
+    --image-weights  \
+    --img-size 640 640 --cfg cfg/training/yolov7.yaml --name official5000_synth-250e+real --hyp data/hyp.scratch.custom.yaml --epochs 250 --weights 'yolov7_training.pt' --cache-images #--freeze
 
-# #Evaluate baseline-synth+real for 100e
-# python test.py --data data/baseline_synth+real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.3 \
-# --device 0 --weights runs/train/official5000_synth-100e+real/weights/best.pt \
-# --no-trace --task cubesat_test --verbose \
-# --cubesat_output_folders official5000_synth-100e+real_ontestagency \
-# --cubesat_output_folders official5000_synth-100e+real_ontestdeployment \
-# --cubesat_output_folders official5000_synth-100e+real_ontestfar \
-# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_testset/images \
-# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/deployment_testset/images \
-# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images
+#Evaluate baseline-synth+real for 100e
+python test.py --data data/baseline_synth+real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.3 \
+--device 0 --weights runs/train/official5000_synth-250e+real/weights/best.pt \
+--no-trace --task cubesat_test --verbose \
+--cubesat_output_folders official5000_synth-250e+real_ontestagency \
+--cubesat_output_folders official5000_synth-250e+real_ontestdeployment \
+--cubesat_output_folders official5000_synth-250e+real_ontestfar \
+--cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_testset/images \
+--cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/deployment_testset/images \
+--cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images
 
 #TUNING
 #Train baseline-synth + real in 100e with rect
