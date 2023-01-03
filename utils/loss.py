@@ -180,8 +180,7 @@ class CoralLoss(nn.Module):
         loss = torch.mean(torch.mul((xc - xct), (xc - xct)))
         # loss = loss/(4*channel_size*channel_size)  #Do not scale, due to the loss vanished over matrix multiplication and averaging for too big matrix
 
-        return loss
-
+        return loss*10000
 
 class QFocalLoss(nn.Module):
     # Wraps Quality focal loss around existing loss_fcn(), i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=1.5)
@@ -207,6 +206,45 @@ class QFocalLoss(nn.Module):
             return loss.sum()
         else:  # 'none'
             return loss
+
+def l2diff(src, tgt):
+    """
+    standard euclidean norm. small number added to increase numerical stability.
+    """
+    return torch.sqrt(torch.sum((src - tgt) ** 2) + 1e-8)
+
+
+def moment_diff(src, tgt, moment):
+    """
+    difference between moments
+    """
+    ss1 = (src ** moment).mean(0)
+    ss2 = (tgt ** moment).mean(0)
+    return l2diff(ss1, ss2)
+
+class CMDLoss(nn.Module):
+    #Inspired by https://gist.github.com/yusuke0519/724aa68fc431afadb0cc7280168da17b
+    def __init__(self, n_moments=5):
+        super(CMDLoss, self).__init__()
+        self.n_moments = n_moments
+
+    def forward(self, source, target):
+        mx1 = torch.mean(source, dim=0)
+        mx2 = torch.mean(target, dim=0)
+        sx1 = source - mx1 
+        sx2 = target - mx2
+
+        scale_by_element_per_batch_first_moment = torch.prod(torch.tensor(mx1.shape[1:]))
+        scale_by_element_per_batch_subseq_moment = torch.prod(torch.tensor(sx1.shape[1:]))
+
+        dm = l2diff(mx1, mx2)/scale_by_element_per_batch_first_moment
+        scms = dm
+
+        for i in range(self.n_moments-1):
+            # moment diff of centralized samples
+            scms += moment_diff(sx1, sx2, i+2)/scale_by_element_per_batch_subseq_moment
+        return scms
+
 
 class RankSort(torch.autograd.Function):
     @staticmethod
@@ -601,6 +639,7 @@ class ComputeLossOTA:
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
 
         self.DAfeatloss = CoralLoss()
+        # self.DAfeatloss = CMDLoss()
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets

@@ -637,8 +637,9 @@ class Model(nn.Module):
             #ADDED DA
             #For YOLOV7 Domain adaptation, choose these indices to apply DA loss
             #They should be features that are pulled from backbone to concat with head
-            if m.i in [37, 24, 51, 63]:
+            if m.i in  [51]: #[37, 24, 51, 63]:
                 da_feature_maps.append(x)
+                # print(x.shape, m.type, m)
             
             y.append(x if m.i in self.save else None)  # save output
 
