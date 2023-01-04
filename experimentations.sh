@@ -1,4 +1,10 @@
 #1. Study of generation huge data vs real minimal data
+#Train baseline-synth + real
+# python data_formatting/delete_cache.py
+
+# python train.py --workers 4 --device 0 --batch-size 4 --data data/only_real_custom_st.yaml \
+#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name bsr_redo_only_real --hyp data/hyp.scratch.custom.yaml --epochs 250 --weights 'yolov7_training.pt' --cache-images #--freeze
+
 
 #Evaluate baseline-synth
 # python test.py --data data/baseline_synth_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.3 \
@@ -12,22 +18,24 @@
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images
 
 # #Evaluate only-real
-#Train baseline-synth + real
+# Train baseline-synth + real
 # python train.py --workers 4 --device 0 --batch-size 4 --data data/only_real_custom_st.yaml \
 #     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name baseline_synth-100e+real --hyp data/hyp.scratch.custom.yaml --epochs 250 --weights 'yolov7_training.pt' --cache-images #--freeze
 
 
-# python test.py --data data/only_real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.3 \
-# --device 0 --weights runs/train/only-real-250e/weights/best.pt \
+# python test.py --data data/only_real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.5 \
+# --device 0 --weights runs/train/bsr_redo_only_real/weights/best.pt \
 # --no-trace --task cubesat_test --verbose \
-# --cubesat_output_folders only-real-250e_ontestagency \
-# --cubesat_output_folders only-real-250e_ontestdeployment \
-# --cubesat_output_folders only-real-250e_ontestfar \
-# --cubesat_output_folders only-real-250e_onfullset \ 
+# --cubesat_output_folders bsr_only_real-250e_ontestagency \
+# --cubesat_output_folders bsr_only_real-250e_ontestdeployment \
+# --cubesat_output_folders bsr_only_real-250e_ontestfar \
+# --cubesat_output_folders bsr_only_real-250e_onfull \
+# --cubesat_output_folders bsr_only_real-250e_onsynth \ 
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_testset/images \
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/deployment_testset/images \
-# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images
-# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_set/images
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images \ 
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/full_labelled_set/images \ 
+# --cubesat_testsets /home/iasrl/Documents/synthetic_dataset/synthetic_testset/images
 
 #Train baseline-synth + real
 # python train.py --workers 4 --device 0 --batch-size 4 --data data/baseline_synth+real_custom_st.yaml \
@@ -44,20 +52,58 @@
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/deployment_testset/images \
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images
 
-# Train baseline-synth + real in 100e
-# python train.py --workers 4 --device 0 --batch-size 4 --data data/baseline_synth+real_custom_st.yaml \
-#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name redo_baseline_synth-100e+real --hyp data/hyp.scratch.custom.yaml --epochs 100 --weights 'yolov7_training.pt' --cache-images #--freeze
 
-# # Evaluate baseline-synth+real for 100e
-# python test.py --data data/baseline_synth+real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.3 \
-# --device 0 --weights runs/train/redo_baseline_synth-100e+real/weights/best.pt \
+# python data_formatting/delete_cache.py
+# python train.py --workers 4 --device 0 --batch-size 4 --data data/baseline_synth+real_custom_st.yaml --image-weights \
+#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name bsr_onlyCubes_redo_baseline_synth-100e+real_cont --hyp data/hyp.scratch.custom.yaml --epochs 100 --weights 'yolov7_training.pt' --cache-images #--freeze 
+
+# python data_formatting/delete_cache.py
+# python train.py --workers 4 --device 0 --batch-size 4 --data data/only_cubes_custom_st.yaml --image-weights \
+#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name bsr_onlyCubes_redo_baseline_synth-100e+real --hyp data/hyp.scratch.custom.yaml --epochs 100 --weights 'yolov7_training.pt' --cache-images #--freeze 
+
+python data_formatting/delete_cache.py
+python train.py --workers 4 --device 0 --batch-size 4 --data data/only_cubes_custom_st.yaml --image-weights \
+    --img-size 640 640 --cfg cfg/training/yolov7.yaml --name bsr_onlyCubes_redo_baseline_synth-100e+real_conted --hyp data/hyp.scratch.custom.yaml --epochs 200 --weights './runs/train/bsr_onlyCubes_redo_baseline_synth-100e+real/weights/last.pt' --cache-images #--freeze 
+
+# # Train baseline-synth + real in 100e
+# python data_formatting/delete_cache.py
+# python train.py --workers 4 --device 0 --batch-size 4 --data data/baseline_synth+real_custom_st.yaml \
+#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name bsr_redo_baseline_synth-100e+real_cont --hyp data/hyp.scratch.custom.yaml --epochs 150 --weights './runs/train/bsr_redo_baseline_synth-100e+real/weights/best.pt' --cache-images #--freeze 
+
+# Evaluate baseline-synth+real for 100e
+# python test.py --data data/baseline_synth+real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.5 \
+# --device 0 --weights runs/train/bsr_redo_baseline_synth-100e+real/weights/best.pt \
 # --no-trace --task cubesat_test --verbose --save-json \
-# --cubesat_output_folders redo_baseline_synth-100e+real_ontestagency \
-# --cubesat_output_folders redo_baseline_synth-100e+real_ontestdeployment \
-# --cubesat_output_folders redo_baseline_synth-100e+real_ontestfar \
+# --cubesat_output_folders bsr_redo_baseline_synth--100e+real_ontestagency \
+# --cubesat_output_folders bsr_redo_baseline_synth--100e+real_ontestdeployment \
+# --cubesat_output_folders bsr_redo_baseline_synth--100e+real_ontestfar \
+# --cubesat_output_folders bsr_redo_baseline_synth--100e+real_onfull \
+# --cubesat_output_folders bsr_redo_baseline_synth--100e+real_onsynth \
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_testset/images \
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/deployment_testset/images \
-# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images  \
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/full_labelled_set/images \
+# --cubesat_testsets /home/iasrl/Documents/synthetic_dataset/synthetic_testset/images
+
+
+# python data_formatting/delete_cache.py
+# python train.py --workers 2 --device 0 --batch-size 2 --data data/baseline_synth+real_custom_st.yaml \
+#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name bsr_redo_baseline_synth-250e+real --hyp data/hyp.scratch.custom.yaml --epochs 300 --resume --cache-images #--freeze
+
+# Evaluate baseline-synth+real for 100e
+# python test.py --data data/baseline_synth+real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.5 \
+# --device 0 --weights runs/train/bsr_redo_baseline_synth-250+real/weights/best.pt \
+# --no-trace --task cubesat_test --verbose --save-json \
+# --cubesat_output_folders bsr_redo_baseline_synth-250e+real_ontestagency \
+# --cubesat_output_folders bsr_redo_baseline_synth-250e+real_ontestdeployment \
+# --cubesat_output_folders bsr_redo_baseline_synth-250e+real_ontestfar \
+# --cubesat_output_folders bsr_redo_baseline_synth-250e+real_onfull \
+# --cubesat_output_folders bsr_redo_baseline_synth-250e+real_onsynth \
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_testset/images \
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/deployment_testset/images \
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images  \
+# --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/full_labelled_set/images \
+# --cubesat_testsets /home/iasrl/Documents/synthetic_dataset/synthetic_testset/images
 
 #2. Study of generation mode
 # python train.py --workers 4 --device 0 --batch-size 4 --data data/empty_space_custom_st.yaml    \
@@ -152,22 +198,23 @@
 
 
 #dataset size: num images
-# #Train baseline-synth + real in 100e
+#Train baseline-synth + real in 100e
 # python train.py --workers 4 --device 0 --batch-size 4 --data data/official5000_synth+real_custom_st.yaml \
-#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name official5000_synth-100e+real --hyp data/hyp.scratch.custom.yaml --epochs 110 --weights 'yolov7_training.pt' --cache-images #--freeze
+#     --image-weights  \
+#     --img-size 640 640 --cfg cfg/training/yolov7.yaml --name official5000_synth-250e+real --hyp data/hyp.scratch.custom.yaml --epochs 250 --weights 'yolov7_training.pt' --cache-images #--freeze
 
 # #Evaluate baseline-synth+real for 100e
 # python test.py --data data/baseline_synth+real_custom_st.yaml --img-size 640 --batch 4 --conf 0.1 --iou 0.3 \
-# --device 0 --weights runs/train/official5000_synth-100e+real/weights/best.pt \
+# --device 0 --weights runs/train/official5000_synth-250e+real/weights/best.pt \
 # --no-trace --task cubesat_test --verbose \
-# --cubesat_output_folders official5000_synth-100e+real_ontestagency \
-# --cubesat_output_folders official5000_synth-100e+real_ontestdeployment \
-# --cubesat_output_folders official5000_synth-100e+real_ontestfar \
+# --cubesat_output_folders official5000_synth-250e+real_ontestagency \
+# --cubesat_output_folders official5000_synth-250e+real_ontestdeployment \
+# --cubesat_output_folders official5000_synth-250e+real_ontestfar \
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_testset/images \
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/deployment_testset/images \
 # --cubesat_testsets /home/iasrl/Documents/real_dataset/full_real_testset/far_testset/images
 
-#TUNING
+# #TUNING
 #Train baseline-synth + real in 100e with rect
 
 #Train hyperparameters

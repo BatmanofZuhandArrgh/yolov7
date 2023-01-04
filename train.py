@@ -410,8 +410,9 @@ def train(hyp, opt, device, tb_writer=None):
             # mAP
             ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'gr', 'names', 'stride', 'class_weights'])
             final_epoch = epoch + 1 == epochs
-            if not opt.notest or final_epoch:  # Calculate mAP
-                wandb_logger.current_epoch = epoch + 1
+            # if not opt.notest or final_epoch:  # Calculate mAP
+            if final_epoch or not epoch%8:
+                wandb_logger.current_epoch = epoch + 4
                 results, maps, times = test.test(data_dict,
                                                  folder_name= opt.name,
                                                  batch_size=batch_size * 2,
