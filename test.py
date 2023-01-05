@@ -151,6 +151,21 @@ def test(data,
                     stats.append((torch.zeros(0, niou, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tcls))
                 continue
 
+            #Post processing removing boxes too big
+            # Will decrease AP, due to decreasing FP, from huge bbox prediction matching huge space target
+            '''
+            pred_post = pred.clone()
+            scale_coords(img[si].shape[1:], pred_post[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
+            gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
+            for pred_index, (*xyxy, conf, cls) in enumerate(pred_post.tolist()):
+                xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                if xywh[2] * xywh[3] > 0.5:
+                    print(pred)
+                    print(pred_index , xywh)
+                    pred = torch.cat([pred[0:pred_index], pred[pred_index+1:]])
+                    print(pred)
+            
+            '''
             # Predictions
             predn = pred.clone()
             scale_coords(img[si].shape[1:], predn[:, :4], shapes[si][0], shapes[si][1])  # native-space pred

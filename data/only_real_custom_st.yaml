@@ -6,7 +6,7 @@ download:  #bash ./scripts/get_coco.sh
 
 # train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
 train: /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_trainset/images  # 118287 images
-val: /home/iasrl/Documents/real_dataset/full_real_testset/final_agency_testset/agencies_trainset/images  # 5000 images
+val: /home/iasrl/Documents/real_dataset/full_real_testset/full_labelled_set/images # 5000 images
 test: /home/iasrl/Documents/real_dataset/full_real_testset/agency_testset/images  
 # number of classes
 
