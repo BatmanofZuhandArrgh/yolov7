@@ -506,7 +506,7 @@ class IBin(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
+    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, da_layer_numbers = []):  # model, input channels, number of classes
         super(Model, self).__init__()
         self.traced = False
 
@@ -530,7 +530,7 @@ class Model(nn.Module):
         self.model, self.save = parse_model(deepcopy(self.yaml), ch=[ch])  # model, savelist
 
         self.names = [str(i) for i in range(self.yaml['nc'])]  # default names
-        # print([x.shape for x in self.forward(torch.zeros(1, ch, 64, 64))])
+        self.da_layer_numbers = da_layer_numbers
 
         # Build strides, anchors
         m = self.model[-1]  # Detect()
@@ -637,7 +637,7 @@ class Model(nn.Module):
             #ADDED DA
             #For YOLOV7 Domain adaptation, choose these indices to apply DA loss
             #They should be features that are pulled from backbone to concat with head
-            if m.i in  [51]: #[37, 24, 51, 63]:
+            if m.i in self.da_layer_numbers: #[51] : #1l [75, 88, 101]: #3ld  #[37, 24, 51]: #3l 
                 da_feature_maps.append(x)
                 # print(x.shape, m.type, m)
             

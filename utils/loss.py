@@ -157,7 +157,9 @@ class CoralLoss(nn.Module):
             self.reduce_2dim = torch.mean
 
     def forward(self, source, target):
-        channel_size = source.shape[1]
+        # channel_size = source.shape[1]
+        if source is None and target is None:
+            return torch.zeros(1)
         #shape = [batch, channel, side, side] (assuming it's square)
     
         #Source
@@ -166,13 +168,11 @@ class CoralLoss(nn.Module):
         #Reduce dimension for each channel to only have 1 mean value
         #In the original implementation, the size of feature is only [batch, channel]
         #In testing this
-        # print(xm, xm.shape)
         xm_2dim = self.reduce_2dim(xm, dim = (2,3)) 
-        # print(xm_2dim, xm_2dim.shape)
         xc = torch.matmul(torch.transpose(xm_2dim, 0, 1), xm_2dim)
         
         #  Target
-        xmt = torch.mean(target, dim=0, keepdim=True) - source
+        xmt = torch.mean(target, dim=0, keepdim=True) - target
         xmt_2dim = self.reduce_2dim(xmt, dim = (2, 3))
         xct = torch.matmul(torch.transpose(xmt_2dim, 0, 1), xmt_2dim)
 
@@ -229,6 +229,9 @@ class CMDLoss(nn.Module):
         self.n_moments = n_moments
 
     def forward(self, source, target):
+        if source is None and target is None:
+            return torch.zeros(1)
+
         mx1 = torch.mean(source, dim=0)
         mx2 = torch.mean(target, dim=0)
         sx1 = source - mx1 
@@ -493,9 +496,8 @@ class APLoss(torch.autograd.Function):
 
 
 class ComputeLoss:
-    # Does not support DA yet
     # Compute losses
-    def __init__(self, model, autobalance=False):
+    def __init__(self, model, da_mode, autobalance=False):
         super(ComputeLoss, self).__init__()
         device = next(model.parameters()).device  # get model device
         h = model.hyp  # hyperparameters
@@ -503,6 +505,13 @@ class ComputeLoss:
         # Define criteria
         BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
+
+        if da_mode == 'CORAL':
+            self.DAfeatloss = CoralLoss()
+        elif da_mode == 'CMD':
+            self.DAfeatloss = CMDLoss()
+        else:
+            raise ValueError('Not a valid value')
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets
@@ -521,10 +530,11 @@ class ComputeLoss:
         for k in 'na', 'nc', 'nl', 'anchors':
             setattr(self, k, getattr(det, k))
 
-    def __call__(self, p, targets):  # predictions, targets, model
+    def __call__(self, p, targets, source_da_feature_maps, target_da_feature_maps):  # predictions, targets, model
         device = targets.device
         lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
         tcls, tbox, indices, anchors = self.build_targets(p, targets)  # targets
+        lda = torch.zeros(1, device=device) #ADDED DA
 
         # Losses
         for i, pi in enumerate(p):  # layer index, layer predictions
@@ -563,13 +573,18 @@ class ComputeLoss:
 
         if self.autobalance:
             self.balance = [x / self.balance[self.ssi] for x in self.balance]
+        for fm_idx in range(len(source_da_feature_maps)): 
+            lda += self.DAfeatloss(source = source_da_feature_maps[fm_idx], target = target_da_feature_maps[fm_idx]).to(device)
+        
+        lda /= len(source_da_feature_maps)
+        lda  *= self.hyp['da']
         lbox *= self.hyp['box']
         lobj *= self.hyp['obj']
         lcls *= self.hyp['cls']
         bs = tobj.shape[0]  # batch size
 
-        loss = lbox + lobj + lcls
-        return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
+        loss = lbox + lobj + lcls + lda
+        return loss * bs, torch.cat((lbox, lobj, lcls, lda, loss)).detach()
 
     def build_targets(self, p, targets):
         # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
@@ -629,7 +644,7 @@ class ComputeLoss:
 
 class ComputeLossOTA:
     # Compute losses
-    def __init__(self, model, autobalance=False):
+    def __init__(self, model, da_mode, autobalance=False):
         super(ComputeLossOTA, self).__init__()
         device = next(model.parameters()).device  # get model device
         h = model.hyp  # hyperparameters
@@ -638,8 +653,12 @@ class ComputeLossOTA:
         BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
 
-        self.DAfeatloss = CoralLoss()
-        # self.DAfeatloss = CMDLoss()
+        if da_mode == 'CORAL':
+            self.DAfeatloss = CoralLoss()
+        elif da_mode == 'CMD':
+            self.DAfeatloss = CMDLoss()
+        else:
+            raise ValueError('Not a valid value')
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets

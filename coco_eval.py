@@ -9,9 +9,6 @@ prefix = 'person_keypoints' if annType=='keypoints' else 'instances'
 annFile = '/home/iasrl/Documents/real_dataset/full_real_testset/full_labelled_set/ful_labelled_set.json'
 cocoGt=COCO(annFile)
 
-print('here')
-print(cocoGt.getImgIds())
-
 resFile='/home/iasrl/Documents/yolov7/runs/test/0redo_baseline_synth-100e+real_onfull/best_predictions.json'
 cocoDt=cocoGt.loadRes(resFile)
 
