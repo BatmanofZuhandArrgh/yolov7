@@ -57,8 +57,65 @@ def CORAL_multi(source, target):
     # frobenius norm between source and target
     loss = torch.mean(torch.mul((xc - xct), (xc - xct)))
     loss = loss/(4*channel_size*channel_size)
-    print(channel_size)
+    # print(channel_size)
     return loss/10000
+
+def cmd(src_embed, tgt_embed, n_moments=5):
+    if torch.mean(torch.abs(src_embed) + torch.abs(tgt_embed)) <= 1e-7:
+        print("Warning: feature representations tend towards zero. "
+              "Consider decreasing 'da_lambda' or using lambda schedule.")
+
+    src_mean = src_embed.mean(dim=0)
+    tgt_mean = tgt_embed.mean(dim=0)
+
+    src_centered = src_embed - src_mean
+    tgt_centered = tgt_embed - tgt_mean
+
+    first_moment = l2diff(src_mean, tgt_mean)  # start with first moment
+
+    moments_diff_sum = first_moment
+    for k in range(2, n_moments + 1):
+        moments_diff_sum = moments_diff_sum + moment_diff(src_centered, tgt_centered, k)
+
+    return moments_diff_sum
+
+
+def l2diff(src, tgt):
+    """
+    standard euclidean norm. small number added to increase numerical stability.
+    """
+    return torch.sqrt(torch.sum((src - tgt) ** 2) + 1e-8)
+
+
+def moment_diff(src, tgt, moment):
+    """
+    difference between moments
+    """
+    ss1 = (src ** moment).mean(0)
+    ss2 = (tgt ** moment).mean(0)
+    return l2diff(ss1, ss2)
+
+class CMD(object):
+    #Inspired by https://gist.github.com/yusuke0519/724aa68fc431afadb0cc7280168da17b
+    def __init__(self, n_moments=5):
+        self.n_moments = n_moments
+
+    def __call__(self, x1, x2):
+        mx1 = torch.mean(x1, dim=0)
+        mx2 = torch.mean(x2, dim=0)
+        sx1 = x1 - mx1 
+        sx2 = x2 - mx2
+
+        scale_by_element_per_batch_first_moment = torch.prod(torch.tensor(mx1.shape[1:]))
+        scale_by_element_per_batch_subseq_moment = torch.prod(torch.tensor(sx1.shape[1:]))
+
+        dm = l2diff(mx1, mx2)/scale_by_element_per_batch_first_moment
+        scms = dm
+
+        for i in range(self.n_moments-1):
+            # moment diff of centralized samples
+            scms += moment_diff(sx1, sx2, i+2)/scale_by_element_per_batch_subseq_moment
+        return scms
 
 
 if __name__ == "__main__":
@@ -69,7 +126,7 @@ if __name__ == "__main__":
     model2.load_state_dict(model.state_dict())
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-0)
     optimizer2 = torch.optim.SGD(model2.parameters(), lr=1e-0)
-    criterion = CORAL
+    criterion = CMD()
     
     # for epoch in range(9):
     #     optimizer.zero_grad()
@@ -92,6 +149,7 @@ if __name__ == "__main__":
     x = torch.randn(3, 10)
     y = torch.randn(3, 10)
     print(criterion(x,y))
+    print(cmd_loss(x, y))
 
     # da_feature_maps = [torch.randn(2, 512, 80, 80) for x in range(4)]
     # for feature_maps in da_feature_maps:
@@ -101,6 +159,9 @@ if __name__ == "__main__":
     #     print(CORAL_multi(source_feature_maps, target_feature_maps))
 
         # print(source_feature_maps.shape, target_feature_maps.shape)
+    x = torch.randn(2, 512, 80, 80)
+    y = torch.randn(2, 512, 80, 80)
+    print(criterion(x, y))
+    print(cmd_loss(x, y))
 
-    print(CORAL_multi(torch.randn(2, 512, 80, 80), torch.randn(2, 512, 80, 80)))
 
