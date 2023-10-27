@@ -1,13 +1,11 @@
-import argparse
-import time
+import os
+import matplotlib
 import yaml
 import numpy as np
 from pprint import pprint
-from pathlib import Path
 
 import cv2
 import torch
-import torch.backends.cudnn as cudnn
 from numpy import random
 
 from models.experimental import attempt_load
@@ -18,6 +16,7 @@ from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 CONFIG_PATH = './predict_config.yaml'
+COCO_CONFIG = './data/coco.yaml'
 
 def load_model(config_dict, weight_path = None):
     # Load model based on config yaml and return model in RAM
@@ -127,9 +126,73 @@ def load_config(config_path):
             print(exc)
     return config_dict
 
+#From utils/plot.py
+def plot_one_box(x, img, color=None, label=None, line_thickness=3):
+    # Plots one bounding box on image img
+    tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
+    color = color or [random.randint(0, 255) for _ in range(3)]
+    c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+    cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
+    if label:
+        tf = max(tl - 1, 1)  # font thickness
+        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
+        c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+        cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
+        cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
+
+def color_list():
+    # Return first 10 plt colors as (r,g,b) https://stackoverflow.com/questions/51350872/python-from-color-name-to-rgb
+    def hex2rgb(h):
+        return tuple(int(h[1 + i:1 + i + 2], 16) for i in (0, 2, 4))
+
+    return [hex2rgb(h) for h in matplotlib.colors.TABLEAU_COLORS.values()]  # or BASE_ (8), CSS4_ (148), XKCD_ (949)
+
+def plot_image(preds, img, save_path='images.jpg', class_names = None):
+    for pred in preds:
+        cls = int(pred[-1])
+        conf = float(pred[-2])
+
+        colors = color_list()  # list of colors
+        color = colors[cls % len(colors)]
+        cls = class_names[cls] if class_names else cls
+
+        label = '%s %.1f' % (cls, conf)
+        plot_one_box(pred, img, color=color, label = label)
+  
+        
+    cv2.imwrite(save_path, img) 
+    
+
 def main():
     config_dict = load_config(CONFIG_PATH)
     pprint(config_dict) 
+    coco_dict = load_config(COCO_CONFIG)
+    class_names = coco_dict['names']
+    
+    source_path = config_dict['source']
+    #Read img0 to BGR
+    img0 = cv2.imread(source_path)
+    original_shape = img0.shape 
+    
+    #Load model
+    model, stride, device = load_model(config_dict, './yolov7.pt')
+
+    #Resize, pad
+    img = preprocessing(config_dict, img0, stride, device) 
+    inference_shape = img.shape
+
+    #Inference
+    preds = model(img, augment=config_dict['augment'])[0] #Shape (1, num_preds, 85)
+
+    #nms and scale coordinates
+    preds = postprocessing(config_dict, preds, original_shape, inference_shape)
+    
+    print(preds)
+    if len(preds) != 0 and config_dict['no_save'] == False:
+        fname = os.path.basename(source_path)
+        plot_image(preds, img0, save_path = os.path.join(config_dict['project'], fname),
+                   class_names = class_names,
+                   )
 
 if __name__ == '__main__':
     main()

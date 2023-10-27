@@ -17,7 +17,7 @@ save_txt: True
 #boolean: whether to save confidence score 
 save_conf: True
 #boolean: whether to save images or videos with bbox
-no_save: True
+no_save: False
 #list: list of class to filter by
 classes: 
 #boolean: class agnostic nms 
